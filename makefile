@@ -17,12 +17,14 @@ EXTRA_LINK_FLAGS =  -fopenmp -L$(NETCDF_LIB) -lnetcdff  -lnetcdf -lopenblas
 # End of system-dependent variable assignments
 
 TARGET = regcoil
+LIBREGCOIL = libregcoil.a
 
 export
 
 .PHONY: all clean
 
-all: $(TARGET)
+all: lib $(TARGET)
+lib: $(LIBREGCOIL)
 
 include makefile.depend
 
@@ -32,10 +34,10 @@ include makefile.depend
 %.o: %.f $(LIBSTELL_DIR)/mini_libstell.a
 	$(FC) $(EXTRA_COMPILE_FLAGS) -I $(LIBSTELL_DIR) -c $<
 
-lib$(TARGET).a: $(OBJ_FILES)
-	ar rcs lib$(TARGET).a $(OBJ_FILES)
+$(LIBREGCOIL): $(OBJ_FILES)
+	ar rcs $@ $^
 
-$(TARGET): lib$(TARGET).a $(TARGET).o $(LIBSTELL_FOR_REGCOIL)
+$(TARGET):  $(TARGET).o $(LIBSTELL_FOR_REGCOIL)
 	$(FC) -o $(TARGET) $(TARGET).o lib$(TARGET).a $(LIBSTELL_FOR_REGCOIL) $(EXTRA_LINK_FLAGS)
 
 $(LIBSTELL_DIR)/mini_libstell.a:
