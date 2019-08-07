@@ -121,7 +121,7 @@ subroutine regcoil_auto_regularization_solve()
      ! Done choosing the next lambda. Now comes the main solve.
      ! ------------------------------------------------------------------------------------------------
 
-		 call regcoil_solve(ilambda)
+     call regcoil_solve(ilambda)
 
      last_above_target = (target_function(ilambda) > target_value)
      if (stage==1) initial_above_target = last_above_target
@@ -147,6 +147,17 @@ subroutine regcoil_auto_regularization_solve()
         ! infinite regularization 
         ! Put the worst achieved chi2_B into the chi2_B_target variable for STELLOPT.
         chi2_B_target = chi2_B(1)    ! 'Worst' achieved chi2_B
+        max_K_target = max_K(1)
+        max_Bnormal_target = max_Bnormal(1)
+        chi2_K_target = chi2_K(1)
+        rms_K_target = rms_K(1)
+        area_coil_target = area_coil
+        area_plasma_target = area_plasma
+        volume_coil_target = volume_coil
+        volume_plasma_target = volume_plasma
+        coil_plasma_dist_min_target = coil_plasma_dist_min
+        Bnormal_total_target = Bnormal_total(:,:,1)
+
         exit
      end if
      if ((.not. last_above_target) .and. (((.not. targeted_quantity_increases_with_lambda) .and. stage==11) &
@@ -165,7 +176,19 @@ subroutine regcoil_auto_regularization_solve()
         ! reached.  Now, the chi2_B returned is the one that is calculated with
         ! infinite regularization 
         ! Put the worst achieved chi2_B into the chi2_B_target variable for STELLOPT.
-        chi2_B_target = chi2_B(1)  ! 'Worst' achieved chi2_B
+        chi2_B_target = chi2_B(1)    ! 'Worst' achieved chi2_B
+        max_K_target = max_K(1)
+        max_Bnormal_target = max_Bnormal(1)
+        chi2_K_target = chi2_K(1)
+        rms_K_target = rms_K(1)
+        area_coil_target = area_coil
+        area_plasma_target = area_plasma
+        volume_coil_target = volume_coil
+        volume_plasma_target = volume_plasma
+        coil_plasma_dist_min_target = coil_plasma_dist_min
+        Bnormal_total_target = Bnormal_total(:,:,1)
+
+
         exit
      end if
      if (stage==2 .and. next_stage == 3) then
@@ -204,7 +227,20 @@ subroutine regcoil_auto_regularization_solve()
            if (verbose) print *,"Requested tolerance has been met."
            exit_code=0
            Nlambda = ilambda
+           ! Assign variables for external optimizers
            chi2_B_target = chi2_B(Nlambda)
+           max_K_target = max_K(Nlambda)
+           max_Bnormal_target = max_Bnormal(Nlambda)
+           chi2_K_target = chi2_K(Nlambda)
+           rms_K_target = rms_K(Nlambda)
+           area_coil_target = area_coil
+           area_plasma_target = area_plasma
+           volume_coil_target = volume_coil
+           volume_plasma_target = volume_plasma
+           coil_plasma_dist_min_target = coil_plasma_dist_min
+           Bnormal_total_target = Bnormal_total(:,:,Nlambda)
+
+
            exit
         end if
      end if
@@ -238,7 +274,7 @@ contains
        targeted_quantity_increases_with_lambda = .false.
 
     case (target_option_rms_K)
-       target_function = sqrt(chi2_K(jlambda) / area_coil)
+       target_function = rms_K(jlambda) ! sqrt(chi2_K(jlambda) / area_coil)
        targeted_quantity_increases_with_lambda = .false.
 
     case (target_option_chi2_K)
@@ -257,13 +293,13 @@ contains
        target_function = chi2_B(jlambda)
        targeted_quantity_increases_with_lambda = .true.
 
-		case (target_option_max_K_lse)
-			 target_function = max_K_lse(jlambda)
-			 targeted_quantity_increases_with_lambda = .false.
+    case (target_option_max_K_lse)
+       target_function = max_K_lse(jlambda)
+       targeted_quantity_increases_with_lambda = .false.
 
-		case (target_option_lp_norm_K)
-			 target_function = lp_norm_K(jlambda)
-			 targeted_quantity_increases_with_lambda = .false.
+    case (target_option_lp_norm_K)
+       target_function = lp_norm_K(jlambda)
+       targeted_quantity_increases_with_lambda = .false.
 
     case default
        print *,"Invalid target_option: ",target_option
