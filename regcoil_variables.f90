@@ -46,8 +46,8 @@ module regcoil_variables
   real(dp), dimension(:), allocatable :: RHS_B, RHS_regularization
   real(dp), dimension(:,:,:), allocatable :: Bnormal_total
   real(dp), dimension(:,:,:), allocatable :: K2, Laplace_Beltrami2
-  real(dp), dimension(:), allocatable :: chi2_B, chi2_K, max_Bnormal, max_K, chi2_Laplace_Beltrami
-	real(dp), dimension(:), allocatable :: lp_norm_K, max_K_lse
+  real(dp), dimension(:), allocatable :: chi2_B, chi2_K, max_Bnormal, max_K, rms_K, chi2_Laplace_Beltrami
+  real(dp), dimension(:), allocatable :: lp_norm_K, max_K_lse
 
   real(dp), dimension(:), allocatable :: theta_coil, zeta_coil, zetal_coil
   real(dp), dimension(:,:,:), allocatable :: r_coil, drdtheta_coil, drdzeta_coil, normal_coil
@@ -109,25 +109,53 @@ module regcoil_variables
   real(dp) :: target_value = 8.0d+6
   real(dp) :: lambda_search_tolerance = 1.0d-5
   integer :: exit_code = 0
+
+  ! Variables exported for external optimizers (i.e. stellopt)
+  !  Notes on intended use
+  !  1. The (allocatable variables) are allocated in regcoil_prepare_solve.  
+  !  2. These variables will be assigned in auto_regularization_solve.
+  !  3. They will be accessed only after auto_regularization_solve is called
+  !  4. Stellopt (or other) will COPY the values into its local (internal)
+  !     variables as needed.
+  !  5. After that, they can be deallocated or re-used in regcoil.
+  !
+  ! The results from regcoil that are exported via these variables
+  !   are either:
+  !  Successful regcoil run: The results from the final iteration (Nlambda)
+  !      if regcoil was able to successfully find a current potential that
+  !      satisfied the target req's
+  !  Failed regcoil run: The results from the iteration with the infinite
+  !      regularization, i.e., the first index, or ilamda=1
   real(dp) :: chi2_B_target = 0
+  real(dp) :: max_K_target = 0
+  real(dp) :: max_Bnormal_target = 0
+  real(dp) :: chi2_K_target = 0
+  real(dp) :: rms_K_target = 0
+  real(dp) :: area_coil_target = 0
+  real(dp) :: area_plasma_target = 0
+  real(dp) :: volume_coil_target = 0
+  real(dp) :: volume_plasma_target = 0
+  real(dp) :: coil_plasma_dist_min_target = 0
+  real(dp), dimension(:,:), allocatable :: Bnormal_total_target
+  !  real(dp), dimension(:,:), allocatable :: K2_target
 
-	! Input parameters for adjoint
-	logical :: fixed_norm_sensitivity_option = .false.
-	integer :: sensitivity_option = 1
-	integer :: sensitivity_symmetry_option = 1
-	integer :: nmax_sensitivity = 1
-	integer :: mmax_sensitivity = 1
-	real(dp) :: target_option_p = 4.0
-	real(dp) :: coil_plasma_dist_lse_p = 1.0d4
+  ! Input parameters for adjoint
+  logical :: fixed_norm_sensitivity_option = .false.
+  integer :: sensitivity_option = 1
+  integer :: sensitivity_symmetry_option = 1
+  integer :: nmax_sensitivity = 1
+  integer :: mmax_sensitivity = 1
+  real(dp) :: target_option_p = 4.0
+  real(dp) :: coil_plasma_dist_lse_p = 1.0d4
 
-	! Needed for sensitivity calculation
+  ! Needed for sensitivity calculation
   real(dp), dimension(:), allocatable :: L_p_norm_with_area
   real(dp), dimension(:,:), allocatable :: dRMSKdomega
   real(dp), dimension(:), allocatable :: darea_coildomega
   integer :: mnmax_sensitivity
   integer :: nomega_coil
-	integer, dimension(:), allocatable :: omega_coil
-	integer, dimension(:), allocatable :: xm_sensitivity, xn_sensitivity
+  integer, dimension(:), allocatable :: omega_coil
+  integer, dimension(:), allocatable :: xm_sensitivity, xn_sensitivity
   real(dp), dimension(:,:), allocatable :: dchi2Bdphi
   real(dp), dimension(:,:,:), allocatable :: dddomega, dfxdomega, dfydomega, dfzdomega
   real(dp), dimension(:,:,:), allocatable :: dnorm_normaldomega, dgdomega
@@ -151,9 +179,9 @@ module regcoil_variables
        target_option_max_Bnormal = "max_Bnormal", &
        target_option_rms_Bnormal = "rms_Bnormal", &
        target_option_chi2_B = "chi2_B", &
-			 target_option_max_K_lse = "max_K_lse", &
-			 target_option_lp_norm_K = "lp_norm_K"
-	character(len=200) :: target_option = target_option_max_K
+       target_option_max_K_lse = "max_K_lse", &
+       target_option_lp_norm_K = "lp_norm_K"
+  character(len=200) :: target_option = target_option_max_K
 
   namelist / regcoil_nml / ntheta_plasma, nzeta_plasma, ntheta_coil, nzeta_coil, &
        geometry_option_plasma, geometry_option_coil, &
@@ -167,9 +195,9 @@ module regcoil_variables
        load_bnorm, bnorm_filename, &
        shape_filename_plasma, nlambda, lambda_min, lambda_max, general_option, regularization_term_option, verbose, nescout_filename, &
        target_option, target_value, lambda_search_tolerance, &
-			 sensitivity_option, nmax_sensitivity, mmax_sensitivity, &
-			 sensitivity_symmetry_option, target_option_p, &
-			 fixed_norm_sensitivity_option, coil_plasma_dist_lse_p
+       sensitivity_option, nmax_sensitivity, mmax_sensitivity, &
+       sensitivity_symmetry_option, target_option_p, &
+       fixed_norm_sensitivity_option, coil_plasma_dist_lse_p
 
 end module regcoil_variables
 

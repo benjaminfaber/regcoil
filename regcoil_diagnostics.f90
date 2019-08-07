@@ -9,7 +9,9 @@ subroutine regcoil_diagnostics(ilambda)
   integer, intent(in) :: ilambda
   integer :: tic, toc, countrate
   real(dp) :: factor_theta, factor_zeta
-  integer :: itheta, izeta
+  integer :: itheta, izeta, iflag
+  real(dp), dimension(:,:,:,:), allocatable :: dist
+  integer :: izeta_plasma, itheta_plasma, izeta_coil, itheta_coil
 
   call system_clock(tic,countrate)
 
@@ -45,28 +47,47 @@ subroutine regcoil_diagnostics(ilambda)
   
   max_Bnormal(ilambda) = maxval(abs(Bnormal_total(:,:,ilambda)))
   max_K(ilambda) = sqrt(maxval(K2(:,:,ilambda)))
+  rms_K(ilambda) = sqrt(chi2_K(ilambda) / area_coil)
   
   chi2_B(ilambda) = nfp * dtheta_plasma * dzeta_plasma &
        * sum(Bnormal_total(:,:,ilambda) * Bnormal_total(:,:,ilambda) * norm_normal_plasma)
 
-	if (trim(target_option)=='max_K_lse') then
-		max_K_lse(ilambda) = (1/target_option_p)*log(sum(norm_normal_coil*dtheta_coil*dzeta_coil*nfp &
-				/area_coil*exp(target_option_p &
-      	*(K2(:,:,ilambda)**(0.5) - max_K(ilambda))))) + max_K(ilambda)
-	else if (trim(target_option)==target_option_lp_norm_K) then
-		lp_norm_K(ilambda) = (dtheta_coil*dzeta_coil*nfp*sum(norm_normal_coil* &
-				K2(:,:,ilambda)**(target_option_p/2.0))/area_coil)**(1.0/target_option_p)
-	end if
+  if (trim(target_option)=='max_K_lse') then
+    max_K_lse(ilambda) = (1/target_option_p)*log(sum(norm_normal_coil*dtheta_coil*dzeta_coil*nfp &
+        /area_coil*exp(target_option_p &
+        *(K2(:,:,ilambda)**(0.5) - max_K(ilambda))))) + max_K(ilambda)
+  else if (trim(target_option)==target_option_lp_norm_K) then
+    lp_norm_K(ilambda) = (dtheta_coil*dzeta_coil*nfp*sum(norm_normal_coil* &
+        K2(:,:,ilambda)**(target_option_p/2.0))/area_coil)**(1.0/target_option_p)
+  end if
   
+  allocate(dist(ntheta_coil,nzeta_coil,ntheta_plasma,nzeta_plasma),stat=iflag)
+  do itheta_coil = 1,ntheta_coil
+    do izeta_coil = 1,nzeta_coil
+      do itheta_plasma = 1,ntheta_plasma
+        do izeta_plasma = 1,nzeta_plasma
+          dist(itheta_coil,izeta_coil,itheta_plasma,izeta_plasma) = &
+         sqrt((r_coil(1,itheta_coil,izeta_coil)-r_plasma(1,itheta_plasma,izeta_plasma))**2 &
+            + (r_coil(2,itheta_coil,izeta_coil)-r_plasma(2,itheta_plasma,izeta_plasma))**2 &
+            + (r_coil(3,itheta_coil,izeta_coil)-r_plasma(3,itheta_plasma,izeta_plasma))**2)
+        end do
+      end do
+    end do
+  end do
+
+  coil_plasma_dist_min = minval(dist)
+  deallocate(dist)
+
   call system_clock(toc)
   if (verbose) print *,"  Diagnostics: ",real(toc-tic)/countrate," sec."
+  if (verbose) print *,"coil_plasma_dist_min: ", coil_plasma_dist_min
   if (verbose) print "(a,es10.3,a,es10.3,a,es10.3)","   chi2_B:",chi2_B(ilambda),",  chi2_K:",chi2_K(ilambda),",  chi2_Laplace_Beltrami:",chi2_Laplace_Beltrami(ilambda)
-  if (verbose) print "(a,es10.3,a,es10.3,a,es10.3)","   max(B_n):",max_Bnormal(ilambda),",  max(K):",max_K(ilambda),",  rms K:",sqrt(chi2_K(ilambda)/area_coil)
-	if (trim(target_option)=='max_K_lse') then
-		if (verbose) print "(a,es10.3)","		max_K_lse:",max_K_lse(ilambda)
-	end if
-	if (trim(target_option)=='lp_norm_K') then
-		if (verbose) print "(a,es10.3)","		lp_norm_K:", lp_norm_K(ilambda)
-	end if
+  if (verbose) print "(a,es10.3,a,es10.3,a,es10.3)","   max(B_n):",max_Bnormal(ilambda),",  max(K):",max_K(ilambda),",  rms K:",rms_K(ilambda) !sqrt(chi2_K(ilambda)/area_coil)
+  if (trim(target_option)=='max_K_lse') then
+    if (verbose) print "(a,es10.3)","    max_K_lse:",max_K_lse(ilambda)
+  end if
+  if (trim(target_option)=='lp_norm_K') then
+    if (verbose) print "(a,es10.3)","    lp_norm_K:", lp_norm_K(ilambda)
+  end if
 
 end subroutine regcoil_diagnostics
