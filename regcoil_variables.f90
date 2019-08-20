@@ -127,6 +127,7 @@ module regcoil_variables
   !  Failed regcoil run: The results from the iteration with the infinite
   !      regularization, i.e., the first index, or ilamda=1
   real(dp) :: chi2_B_target = 0
+  real(dp) :: lambda_target = 0
   real(dp) :: max_K_target = 0
   real(dp) :: max_Bnormal_target = 0
   real(dp) :: chi2_K_target = 0
@@ -136,7 +137,7 @@ module regcoil_variables
   real(dp) :: volume_coil_target = 0
   real(dp) :: volume_plasma_target = 0
   real(dp) :: coil_plasma_dist_min_target = 0
-  real(dp), dimension(:,:), allocatable :: Bnormal_total_target
+  real(dp), dimension(:), allocatable :: Bnormal_total_target
   !  real(dp), dimension(:,:), allocatable :: K2_target
 
   ! Input parameters for adjoint
