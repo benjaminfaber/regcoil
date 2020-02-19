@@ -2,8 +2,8 @@ LIBSTELL_DIR = mini_libstell
 LIBSTELL_FOR_REGCOIL=$(LIBSTELL_DIR)/mini_libstell.a
 
 ifneq (,$(wildcard /.dockerenv))
-NETCDF_INC:=/usr/include
-NETCDF_LIB:=/usr/lib
+NETCDF_INC:=/opt/include
+NETCDF_LIB:=/opt/lib
 else
 NETCDF_INC:=$(NETCDF_F_DIR)/include
 NETCDF_LIB:=$(NETCDF_F_DIR)/lib
